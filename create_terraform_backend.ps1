@@ -19,14 +19,18 @@ param(
 
 $rgNameWithPrefix = "$rgName-$prefix"
 
-$sqlPassword = $env:MANGO_TF_SQL_PASS
-#Write-Output "Using sql server password $sqlPassword ..."
-
 Write-Output "Creating resource group $rgNameWithPrefix in $location ..."
 az group create --name "$rgNameWithPrefix" --location "$location"
 
 Write-Output "Creating storage account $storageAccount ..."
-az storage account create --name $storageAccount --resource-group $rgNameWithPrefix --kind "StorageV2" --sku "Standard_LRS" --https-only "true" --allow-blob-public-access "false"
+
+az storage account create `
+--name $storageAccount `
+--resource-group $rgNameWithPrefix `
+--kind "StorageV2" `
+--sku "Standard_LRS" `
+--https-only "true" `
+--allow-blob-public-access "false"
 
 Write-Output "Creating storage container $contName ..."
 az storage container create --name $container --account-name $storageAccount --public-access "off"
@@ -38,9 +42,6 @@ $sas = $( az storage container generate-sas --name $container --expiry $Date --p
 
 Write-Output "Creating keyvault $keyVaultName ..."
 az keyvault create --name $keyVaultName --resource-group $rgNameWithPrefix --location $location
-
-#Write-Output "Creating keyvault secret [RgTfState] ..."
-#az keyvault secret set --name "RgTfState" --vault-name $keyVaultName --value $rgName
 
 Write-Output "Creating service principal $spName ..."
 $password = $( az ad sp create-for-rbac --role contributor --scopes "/subscriptions/$subscriptionId" --name $spName --query "password" --output tsv )
@@ -78,14 +79,12 @@ az keyvault secret set --name "kv-arm-tenant-id" --vault-name $keyVaultName --va
 Write-Output "Creating keyvault secret [kv-prefix] ..."
 az keyvault secret set --name "kv-prefix" --vault-name $keyVaultName --value $prefix
 
-Write-Output "Creating keyvault secret [kv-sql-password] ..."
-az keyvault secret set --name "kv-sql-password" --vault-name $keyVaultName --value "$sqlPassword"
-
 Write-Output "Creating role assignment [Storage Blob Data Contributor] for service principal $spName ..."
+
 az role assignment create `
---role "Storage Blob Data Contributor"`
---scope "/subscriptions/$subscriptionId"`
---assignee-object-id "$spObjectId"`
+--role "Storage Blob Data Contributor" `
+--scope "/subscriptions/$subscriptionId" `
+--assignee-object-id "$spObjectId" `
 --assignee-principal-type "ServicePrincipal"
 
 # example call:
